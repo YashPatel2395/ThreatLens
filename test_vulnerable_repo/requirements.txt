@@ -1,0 +1,14 @@
+# Intentionally pinned to vulnerable versions for scanner testing.
+# DO NOT install these in a production environment.
+#
+# Known CVEs covered:
+#   flask==0.12.2  → CVE-2018-1000656, CVE-2019-1010083, CVE-2023-30861
+#   jinja2==2.10   → CVE-2019-10906 (sandbox escape)
+#   requests==2.6.0 → CVE-2018-18074 (credential leak on redirect)
+#   pyyaml==3.12   → CVE-2017-18342 (arbitrary code execution via load())
+
+flask==0.12.2
+jinja2==2.10
+requests==2.6.0
+pyyaml==3.12
+Werkzeug==0.14.1

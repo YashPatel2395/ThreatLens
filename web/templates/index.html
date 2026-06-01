@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ThreatLens — Security Operations</title>
+<style>
+/* ══════════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════════ */
+:root {
+  --bg:       #060608;
+  --bg1:      #0d0d11;
+  --bg2:      #121217;
+  --bg3:      #18181f;
+  --bg4:      #1e1e28;
+  --glass:    rgba(255,255,255,0.03);
+  --glass-h:  rgba(255,255,255,0.06);
+  --border:   rgba(255,255,255,0.06);
+  --border-b: rgba(255,255,255,0.11);
+  --tx:       #e0e0ea;
+  --tx2:      #8888a0;
+  --tx3:      #555568;
+  --tx4:      #2a2a38;
+
+  --indigo:   #5b61f5;
+  --indigo-d: rgba(91,97,245,0.12);
+  --indigo-g: rgba(91,97,245,0.3);
+  --cyan:     #00cfee;
+  --cyan-d:   rgba(0,207,238,0.1);
+  --green:    #00e078;
+  --green-d:  rgba(0,224,120,0.1);
+  --red:      #ff4060;
+  --red-d:    rgba(255,64,96,0.1);
+  --amber:    #ffaa18;
+  --amber-d:  rgba(255,170,24,0.1);
+  --orange:   #ff6b2d;
+  --orange-d: rgba(255,107,45,0.1);
+  --purple:   #9a6df5;
+  --purple-d: rgba(154,109,245,0.1);
+
+  --sb-w: 200px;
+  --tb-h: 50px;
+  --stb-h: 28px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ══════════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════════ */
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ══════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sb-w);
+  flex-shrink: 0;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-brand {
+  padding: 1rem .9rem .85rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .5rem;
+  flex-shrink: 0;
+}
+.sb-mark {
+  width: 30px; height: 30px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-brand-text { flex: 1; min-width: 0; }
+.sb-name  { font-size: .82rem; font-weight: 700; color: var(--tx); line-height: 1.2; }
+.sb-badge {
+  font-size: .56rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--indigo); background: var(--indigo-d);
+  border: 1px solid rgba(91,97,245,0.2);
+  padding: .1rem .35rem; border-radius: 3px; margin-top: .1rem; display: inline-block;
+}
+
+.sb-nav { flex: 1; padding: .6rem 0; overflow-y: auto; }
+.sb-nav::-webkit-scrollbar { display: none; }
+
+.sb-section { padding: .5rem .9rem .25rem; font-size: .6rem; font-weight: 700;
+              letter-spacing: .12em; text-transform: uppercase; color: var(--tx4); }
+
+.sb-item {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .5rem .9rem;
+  font-size: .8rem; color: var(--tx2);
+  cursor: pointer; user-select: none;
+  border-left: 2px solid transparent;
+  transition: color .12s, background .12s, border-color .12s;
+  position: relative;
+}
+.sb-item:hover { background: var(--glass); color: var(--tx); }
+.sb-item.active {
+  background: var(--indigo-d);
+  color: var(--tx);
+  border-left-color: var(--indigo);
+}
+.sb-item-icon { font-size: .85rem; width: 16px; text-align: center; flex-shrink: 0; }
+.sb-item-badge {
+  margin-left: auto; background: var(--bg4); color: var(--tx2);
+  font-size: .62rem; font-weight: 700; padding: .1rem .4rem;
+  border-radius: 999px; border: 1px solid var(--border-b);
+}
+.sb-item.active .sb-item-badge { background: var(--indigo-d); color: var(--indigo); }
+
+.sb-divider { height: 1px; background: var(--border); margin: .4rem .9rem; }
+
+.sb-live-scan {
+  margin: .5rem .75rem;
+  background: var(--bg3);
+  border: 1px solid var(--border-b);
+  border-radius: 9px;
+  padding: .65rem .75rem;
+  font-size: .72rem;
+  display: none;
+}
+.sb-live-scan.visible { display: block; }
+.sb-ls-label {
+  display: flex; align-items: center; gap: .35rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+  font-size: .62rem; color: var(--indigo); margin-bottom: .4rem;
+}
+.sb-ls-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo);
+             animation: sbdot 1.5s ease-in-out infinite; }
+@keyframes sbdot { 0%,100%{opacity:1} 50%{opacity:.3} }
+.sb-ls-repo { color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: .3rem; }
+.sb-ls-pbar { height: 2px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.sb-ls-pfill { height: 100%; background: linear-gradient(90deg, var(--indigo), var(--cyan));
+               width: 0%; transition: width .6s ease; }
+
+/* ══════════════════════════════════════════════
+   MAIN AREA
+══════════════════════════════════════════════ */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Topbar ── */
+.topbar {
+  height: var(--tb-h);
+  background: var(--bg1);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .75rem;
+  padding: 0 1.1rem;
+  flex-shrink: 0;
+}
+
+.tb-view-title { font-size: .88rem; font-weight: 700; color: var(--tx); flex-shrink: 0; }
+
+.tb-search {
+  flex: 1; max-width: 360px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 7px; padding: .38rem .75rem;
+  display: flex; align-items: center; gap: .4rem;
+}
+.tb-search-icon { font-size: .75rem; color: var(--tx3); }
+.tb-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: .78rem; color: var(--tx); font-family: inherit;
+}
+.tb-search input::placeholder { color: var(--tx3); }
+
+.tb-spacer { flex: 1; }
+
+/* Active scan indicator in topbar */
+.tb-scan-pill {
+  display: none;
+  align-items: center; gap: .45rem;
+  background: var(--bg3); border: 1px solid var(--border-b);
+  border-radius: 999px; padding: .28rem .75rem;
+  font-size: .72rem; color: var(--tx2); cursor: pointer;
+  transition: background .12s;
+}
+.tb-scan-pill:hover { background: var(--bg4); }
+.tb-scan-pill.visible { display: flex; }
+.tb-scan-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo);
+               animation: sbdot 1.5s ease-in-out infinite; }
+.tb-scan-pct { font-family: monospace; font-size: .7rem; color: var(--indigo); font-weight: 700; }
+
+.tb-new-scan {
+  background: var(--indigo); color: #fff; border: none;
+  border-radius: 7px; padding: .42rem 1rem;
+  font-size: .8rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: .35rem;
+  transition: background .12s, box-shadow .12s;
+  box-shadow: 0 0 16px rgba(91,97,245,0.22);
+  flex-shrink: 0;
+}
+.tb-new-scan:hover { background: #4b51e0; box-shadow: 0 0 24px rgba(91,97,245,0.38); }
+
+/* ── Content ── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.1rem;
+}
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border-b); border-radius: 2px; }
+
+/* Views */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── Status bar ── */
+.statusbar {
+  height: var(--stb-h);
+  background: var(--bg1);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.stb-agents { display: flex; align-items: center; gap: 1rem; flex: 1; }
+.stb-agent {
+  display: flex; align-items: center; gap: .3rem;
+  font-size: .62rem; color: var(--tx3);
+  white-space: nowrap;
+}
+.stb-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--tx4); flex-shrink: 0;
+}
+.stb-dot.online  { background: var(--green); box-shadow: 0 0 4px rgba(0,224,120,0.5); }
+.stb-dot.running { background: var(--indigo); animation: sbdot 1s infinite; }
+.stb-dot.offline { background: var(--red); }
+.stb-right { font-size: .6rem; color: var(--tx4); }
+
+/* ══════════════════════════════════════════════
+   PANELS / CARDS
+══════════════════════════════════════════════ */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.panel.live { border-color: rgba(91,97,245,0.28); box-shadow: 0 0 0 1px rgba(91,97,245,0.08) inset; }
+.panel.complete { border-color: rgba(0,224,120,0.18); }
+.panel.failed   { border-color: rgba(255,64,96,0.18); }
+
+.panel-hdr {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .7rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg1);
+}
+.panel-title { font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--tx3); }
+.panel-sub   { font-size: .75rem; color: var(--tx2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel-right { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+
+/* ══════════════════════════════════════════════
+   KPI ROW
+══════════════════════════════════════════════ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: .6rem;
+  margin-bottom: .9rem;
+}
+@media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(4, 1fr); } }
+
+.kpi {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 9px; padding: .65rem .8rem;
+  transition: border-color .2s;
+}
+.kpi.lit { border-color: var(--border-b); }
+.kpi-label { font-size: .6rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--tx3); margin-bottom: .28rem; }
+.kpi-val   { font-size: 1.45rem; font-weight: 800; font-family: monospace; line-height: 1; color: var(--tx3); transition: color .3s; font-variant-numeric: tabular-nums; }
+.kpi.lit .kpi-val { color: var(--tx); }
+.kpi.risk-kpi .kpi-val  { color: var(--tx); }
+.kpi.crit .kpi-val { color: var(--red); }
+.kpi.hi   .kpi-val { color: var(--amber); }
+.kpi.med  .kpi-val { color: var(--orange); }
+.kpi.lo   .kpi-val { color: var(--cyan); }
+.kpi-bar  { height: 2px; background: var(--border); border-radius: 999px; margin-top: .4rem; overflow: hidden; }
+.kpi-fill { height: 100%; border-radius: 999px; width: 0%; transition: width 1.2s ease; }
+.kpi.crit .kpi-fill { background: var(--red); }
+.kpi.hi   .kpi-fill { background: var(--amber); }
+.kpi.med  .kpi-fill { background: var(--orange); }
+.kpi.lo   .kpi-fill { background: var(--cyan); }
+.kpi.risk-kpi .kpi-fill { background: linear-gradient(90deg, var(--green), var(--amber), var(--red)); }
+
+/* ══════════════════════════════════════════════
+   DASHBOARD LAYOUT
+══════════════════════════════════════════════ */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: .9rem;
+}
+@media (max-width: 960px) { .dash-grid { grid-template-columns: 1fr; } }
+
+.dash-left  { display: flex; flex-direction: column; gap: .9rem; }
+.dash-right { display: flex; flex-direction: column; gap: .9rem; }
+
+/* ── Live Scan Panel ── */
+.live-scan-body {
+  padding: .75rem 1rem .85rem;
+}
+
+.live-progress-row {
+  display: flex; align-items: center; gap: .75rem;
+  margin-bottom: .7rem;
+}
+.live-ptrack {
+  flex: 1; height: 3px; background: var(--border); border-radius: 999px; overflow: hidden;
+}
+.live-pfill {
+  height: 100%; background: linear-gradient(90deg, var(--indigo), var(--cyan));
+  width: 0%; transition: width .7s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+.live-pfill::after {
+  content:''; position:absolute; right:0; top:0; bottom:0; width:50px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  animation: pfshim 1.8s ease-in-out infinite;
+}
+@keyframes pfshim { 0%,100%{opacity:0} 50%{opacity:1} }
+.live-pct   { font-size: .75rem; font-family: monospace; font-weight: 700; color: var(--indigo); flex-shrink: 0; }
+.live-elapsed { font-size: .72rem; font-family: monospace; color: var(--tx3); flex-shrink: 0; }
+
+.live-cols {
+  display: grid;
+  grid-template-columns: 195px 1fr;
+  gap: .75rem;
+  min-height: 260px;
+}
+
+/* Agent pipeline */
+.pipeline { overflow-y: auto; }
+.pipeline::-webkit-scrollbar { display: none; }
+.pipe-hdr { font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+             color: var(--tx4); margin-bottom: .5rem; }
+
+.pipe-item {
+  display: flex; align-items: flex-start; gap: .5rem;
+  padding: .32rem 0; font-size: .75rem;
+  border-left: 1px solid var(--border);
+  padding-left: .7rem;
+  margin-left: .4rem;
+  position: relative;
+  transition: border-color .2s;
+}
+.pipe-item[data-status="running"]   { border-left-color: var(--indigo); }
+.pipe-item[data-status="completed"] { border-left-color: var(--green); }
+.pipe-item[data-status="failed"]    { border-left-color: var(--red); }
+
+.pipe-dot {
+  position: absolute; left: -5px; top: .65rem;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bg); border: 1.5px solid var(--tx4);
+  flex-shrink: 0; transition: all .2s;
+}
+.pipe-item[data-status="running"]   .pipe-dot { background: var(--indigo); border-color: var(--indigo); animation: pglow 1.5s ease-in-out infinite; }
+.pipe-item[data-status="completed"] .pipe-dot { background: var(--green);  border-color: var(--green); }
+.pipe-item[data-status="failed"]    .pipe-dot { background: var(--red);    border-color: var(--red); }
+.pipe-item[data-status="skipped"]   .pipe-dot { background: var(--bg3);   border-color: var(--tx4); }
+@keyframes pglow { 0%,100%{box-shadow:0 0 0 0 var(--indigo-g)} 50%{box-shadow:0 0 0 4px rgba(91,97,245,0)} }
+
+.pipe-info { flex: 1; min-width: 0; }
+.pipe-name { font-size: .75rem; font-weight: 600; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pipe-item[data-status="running"]   .pipe-name { color: var(--tx); }
+.pipe-item[data-status="completed"] .pipe-name { color: var(--tx2); }
+.pipe-item[data-status="failed"]    .pipe-name { color: var(--red); }
+.pipe-item[data-status="skipped"]   .pipe-name { color: var(--tx4); text-decoration: line-through; }
+.pipe-sub  { font-size: .65rem; color: var(--tx3); }
+.pipe-time { font-size: .62rem; font-family: monospace; color: var(--tx4); white-space: nowrap; margin-left: auto; padding-left: .3rem; flex-shrink: 0; }
+
+/* Activity feed */
+.feed-wrap { display: flex; flex-direction: column; overflow: hidden; }
+.feed-hdr  { font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+             color: var(--tx4); margin-bottom: .5rem; display: flex; align-items: center; }
+.feed-cnt  { margin-left: auto; font-size: .62rem; color: var(--tx4); }
+.feed-log  {
+  flex: 1; overflow-y: auto; font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: .72rem; line-height: 1.5;
+  background: var(--bg1); border: 1px solid var(--border); border-radius: 7px;
+  padding: .5rem;
+}
+.feed-log::-webkit-scrollbar { width: 3px; }
+.feed-log::-webkit-scrollbar-thumb { background: var(--border-b); border-radius: 2px; }
+
+.flog-entry { display: flex; gap: .5rem; padding: .2rem 0; animation: fein .2s ease; }
+@keyframes fein { from{opacity:0;transform:translateY(2px)} to{opacity:1;transform:translateY(0)} }
+.flog-time  { color: var(--tx4); flex-shrink: 0; font-size: .68rem; padding-top: .05rem; }
+.flog-body  { flex: 1; min-width: 0; }
+.flog-agent { font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: .64rem; margin-bottom: .06rem; }
+.flog-msg   { color: var(--tx2); word-break: break-word; }
+.flog-det   { color: var(--tx3); font-size: .66rem; }
+.flog-dots  { display: inline-flex; gap: 2px; align-items: center; margin-top: .15rem; }
+.flog-dots span { width: 3px; height: 3px; border-radius: 50%; background: var(--indigo); animation: dots .85s infinite; }
+.flog-dots span:nth-child(2) { animation-delay: .2s; }
+.flog-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dots { 0%,80%,100%{transform:scale(1);opacity:.35} 40%{transform:scale(1.4);opacity:1} }
+
+/* Agent colors */
+.ac-indigo { color: var(--indigo); }
+.ac-cyan   { color: var(--cyan); }
+.ac-green  { color: var(--green); }
+.ac-amber  { color: var(--amber); }
+.ac-red    { color: var(--red); }
+.ac-purple { color: var(--purple); }
+.ac-orange { color: var(--orange); }
+.ac-muted  { color: var(--tx3); }
+
+/* ── Scan Complete in left panel ── */
+.scan-complete-body {
+  padding: 1rem;
+  display: flex; align-items: flex-start; gap: 1.1rem;
+}
+.sc-ring { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.sc-ring svg { width: 80px; height: 80px; transform: rotate(-90deg); }
+.sc-ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+.sc-ring-fg { fill: none; stroke-width: 6; stroke-linecap: round;
+               stroke-dasharray: 188.5; stroke-dashoffset: 188.5;
+               transition: stroke-dashoffset 1.2s ease, stroke .3s; }
+.sc-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            font-size: 1.25rem; font-weight: 900; font-family: monospace; color: var(--tx); }
+.sc-info  { flex: 1; }
+.sc-risk-tag {
+  font-size: .65rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  padding: .15rem .5rem; border-radius: 4px; display: inline-block; margin-bottom: .5rem;
+}
+.sc-risk-tag.low      { background: var(--green-d); color: var(--green); }
+.sc-risk-tag.moderate { background: var(--cyan-d);  color: var(--cyan); }
+.sc-risk-tag.high     { background: var(--amber-d); color: var(--amber); }
+.sc-risk-tag.critical { background: var(--red-d);   color: var(--red); }
+.sc-risk-tag.unknown  { background: var(--border);  color: var(--tx3); }
+.sc-repo { font-size: .8rem; font-weight: 600; color: var(--tx); margin-bottom: .3rem; word-break: break-all; }
+.sc-stats { font-size: .75rem; color: var(--tx2); line-height: 1.6; }
+.sc-stats strong { color: var(--tx); }
+.sc-actions { display: flex; gap: .5rem; margin-top: .7rem; flex-wrap: wrap; }
+.sc-btn {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .38rem .9rem; border-radius: 6px; font-size: .75rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; border: none;
+  transition: all .12s;
+}
+.sc-btn-p { background: var(--indigo); color: #fff; }
+.sc-btn-p:hover { background: #4b51e0; }
+.sc-btn-o { background: var(--glass); border: 1px solid var(--border-b); color: var(--tx2); }
+.sc-btn-o:hover { background: var(--glass-h); color: var(--tx); }
+
+/* ── Empty state ── */
+.empty-state {
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+}
+.empty-state-icon { font-size: 2rem; margin-bottom: .7rem; opacity: .35; }
+.empty-state-title { font-size: .9rem; font-weight: 700; color: var(--tx2); margin-bottom: .35rem; }
+.empty-state-sub   { font-size: .78rem; color: var(--tx3); line-height: 1.55; }
+.empty-scan-btn {
+  margin-top: 1rem;
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .5rem 1.2rem; border-radius: 7px;
+  background: var(--indigo); color: #fff; border: none;
+  font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: background .12s;
+}
+.empty-scan-btn:hover { background: #4b51e0; }
+
+/* ── Recent Scans table ── */
+.scans-tbl { width: 100%; border-collapse: collapse; }
+.scans-tbl th {
+  text-align: left; font-size: .62rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--tx4);
+  padding: .55rem .8rem; border-bottom: 1px solid var(--border);
+}
+.scans-tbl td {
+  padding: .55rem .8rem; font-size: .78rem; color: var(--tx2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.scans-tbl tbody tr { cursor: pointer; transition: background .1s; }
+.scans-tbl tbody tr:hover td { background: var(--glass); }
+.scans-tbl tbody tr:last-child td { border-bottom: none; }
+
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: .4rem; }
+.status-dot.completed { background: var(--green); box-shadow: 0 0 4px rgba(0,224,120,0.5); }
+.status-dot.running   { background: var(--indigo); animation: sbdot 1.5s infinite; }
+.status-dot.queued    { background: var(--tx3); }
+.status-dot.failed    { background: var(--red); }
+
+.risk-pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .68rem; font-weight: 700;
+  padding: .18rem .55rem; border-radius: 999px;
+}
+.risk-pill.critical { background: var(--red-d);   color: var(--red);   border: 1px solid rgba(255,64,96,0.2); }
+.risk-pill.high     { background: var(--amber-d); color: var(--amber); border: 1px solid rgba(255,170,24,0.2); }
+.risk-pill.moderate { background: var(--cyan-d);  color: var(--cyan);  border: 1px solid rgba(0,207,238,0.2); }
+.risk-pill.low      { background: var(--green-d); color: var(--green); border: 1px solid rgba(0,224,120,0.2); }
+.risk-pill.none     { background: var(--border);  color: var(--tx3);   border: 1px solid transparent; }
+.risk-num { font-family: monospace; }
+
+.tbl-mono { font-family: monospace; font-size: .73rem; color: var(--tx2); }
+.tbl-url  { font-size: .78rem; color: var(--tx); font-weight: 500; }
+.tbl-age  { font-size: .7rem; color: var(--tx3); white-space: nowrap; }
+
+/* ══════════════════════════════════════════════
+   RIGHT PANEL — ARCHITECTURE
+══════════════════════════════════════════════ */
+.arch-body { padding: .75rem 1rem; }
+.arch-repo-name { font-size: .78rem; font-weight: 600; color: var(--tx); margin-bottom: .6rem;
+                  word-break: break-all; }
+.arch-row {
+  display: flex; gap: .5rem; align-items: flex-start;
+  padding: .2rem 0; font-size: .75rem;
+}
+.arch-key { color: var(--tx3); width: 80px; flex-shrink: 0; }
+.arch-val { color: var(--tx2); }
+.arch-val .chip {
+  display: inline-block; background: var(--bg4); border: 1px solid var(--border-b);
+  border-radius: 4px; padding: .06rem .4rem; font-size: .68rem; margin: .1rem .1rem .1rem 0;
+}
+.arch-placeholder { font-size: .75rem; color: var(--tx3); padding: .3rem 0; }
+
+/* ══════════════════════════════════════════════
+   RIGHT PANEL — TOP FINDINGS
+══════════════════════════════════════════════ */
+.findings-body { padding: .65rem .9rem; }
+.finding-item {
+  display: flex; align-items: flex-start; gap: .6rem;
+  padding: .5rem 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: opacity .12s;
+}
+.finding-item:last-child { border-bottom: none; }
+.finding-item:hover { opacity: .8; }
+.find-sev {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+}
+.find-sev.CRITICAL { background: var(--red); box-shadow: 0 0 4px rgba(255,64,96,0.5); }
+.find-sev.HIGH     { background: var(--amber); }
+.find-sev.MEDIUM   { background: var(--orange); }
+.find-sev.LOW      { background: var(--cyan); }
+.find-body { flex: 1; min-width: 0; }
+.find-title { font-size: .75rem; font-weight: 600; color: var(--tx); line-height: 1.3;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.find-meta  { font-size: .65rem; color: var(--tx3); margin-top: .08rem; font-family: monospace; }
+.find-src-tag {
+  font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+  padding: .08rem .35rem; border-radius: 3px; flex-shrink: 0; align-self: flex-start;
+}
+.find-src-tag.code    { background: var(--indigo-d); color: var(--indigo); }
+.find-src-tag.secrets { background: var(--amber-d);  color: var(--amber); }
+.find-src-tag.deps    { background: var(--purple-d); color: var(--purple); }
+
+/* ══════════════════════════════════════════════
+   RIGHT PANEL — SOURCE BREAKDOWN
+══════════════════════════════════════════════ */
+.breakdown-body { padding: .75rem 1rem; }
+.bk-row { margin-bottom: .6rem; }
+.bk-hdr { display: flex; justify-content: space-between; align-items: baseline;
+           margin-bottom: .3rem; font-size: .72rem; }
+.bk-label { color: var(--tx2); font-weight: 600; }
+.bk-count { color: var(--tx3); font-family: monospace; font-size: .7rem; }
+.bk-track { height: 3px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.bk-fill  { height: 100%; border-radius: 999px; width: 0%; transition: width 1.1s ease; }
+.bk-code   .bk-fill { background: var(--indigo); }
+.bk-secrets .bk-fill { background: var(--amber); }
+.bk-deps   .bk-fill { background: var(--purple); }
+
+/* ══════════════════════════════════════════════
+   SCANS VIEW (full history)
+══════════════════════════════════════════════ */
+.scans-view-hdr { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+.scans-view-title { font-size: 1.05rem; font-weight: 700; }
+.scans-view-count { font-size: .75rem; color: var(--tx3); }
+
+/* ══════════════════════════════════════════════
+   REPORTS VIEW
+══════════════════════════════════════════════ */
+.report-frame {
+  width: 100%; height: calc(100vh - var(--tb-h) - var(--stb-h) - 3rem);
+  border: 1px solid var(--border); border-radius: 10px;
+  background: #fff;
+}
+.reports-empty { padding: 2rem; text-align: center; color: var(--tx3); font-size: .85rem; }
+
+/* ══════════════════════════════════════════════
+   SETTINGS VIEW
+══════════════════════════════════════════════ */
+.settings-body { max-width: 560px; }
+.settings-section { margin-bottom: 1.5rem; }
+.settings-section-title { font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+                           color: var(--tx3); margin-bottom: .75rem; }
+.settings-row {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 9px; padding: 1rem;
+  margin-bottom: .5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.settings-label { font-size: .82rem; color: var(--tx); font-weight: 500; }
+.settings-sub   { font-size: .72rem; color: var(--tx3); margin-top: .12rem; }
+.settings-input {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 7px;
+  padding: .45rem .75rem; font-size: .82rem; color: var(--tx); outline: none;
+  transition: border-color .12s; font-family: monospace; width: 220px;
+}
+.settings-input:focus { border-color: rgba(91,97,245,0.4); }
+.settings-toggle {
+  position: relative; width: 36px; height: 20px; flex-shrink: 0;
+}
+.settings-toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; background: var(--bg4); border-radius: 999px;
+  transition: background .15s; cursor: pointer; border: 1px solid var(--border-b);
+}
+.toggle-slider::before {
+  content: ''; position: absolute; width: 14px; height: 14px;
+  left: 2px; top: 2px; background: var(--tx3); border-radius: 50%;
+  transition: transform .15s, background .15s;
+}
+input:checked + .toggle-slider { background: var(--indigo); }
+input:checked + .toggle-slider::before { transform: translateX(16px); background: #fff; }
+
+/* ══════════════════════════════════════════════
+   SLIDE-OVER (New Scan)
+══════════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  display: none; opacity: 0;
+  transition: opacity .2s;
+}
+.overlay.open { display: block; opacity: 1; }
+
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 440px; max-width: 95vw;
+  background: var(--bg2);
+  border-left: 1px solid var(--border-b);
+  z-index: 100;
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-hdr {
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--bg1); flex-shrink: 0;
+}
+.drawer-title { font-size: .92rem; font-weight: 700; flex: 1; }
+.drawer-close {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--glass); border: 1px solid var(--border);
+  color: var(--tx2); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; transition: background .1s;
+}
+.drawer-close:hover { background: var(--glass-h); }
+
+.drawer-body { flex: 1; padding: 1.25rem; overflow-y: auto; }
+.drawer-body::-webkit-scrollbar { display: none; }
+
+.field { margin-bottom: 1.1rem; }
+.field-label {
+  display: block; font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--tx3); margin-bottom: .45rem;
+}
+.field-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: .65rem .9rem; font-size: .88rem; color: var(--tx); outline: none;
+  transition: border-color .12s, box-shadow .12s;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+.field-input:focus { border-color: rgba(91,97,245,0.45); box-shadow: 0 0 0 3px rgba(91,97,245,0.09); }
+.field-input::placeholder { color: var(--tx4); font-family: inherit; }
+
+.field-toggle-row {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .7rem .9rem; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer;
+}
+.field-toggle-row .field-label { margin: 0; cursor: pointer; color: var(--tx2); }
+.field-toggle-sub { font-size: .72rem; color: var(--tx3); margin-top: 0; flex: 1; }
+
+.form-err-box {
+  background: var(--red-d); border: 1px solid rgba(255,64,96,0.2);
+  border-radius: 7px; padding: .6rem .85rem; font-size: .78rem; color: var(--red);
+  margin-bottom: .75rem;
+}
+
+.drawer-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.deploy-btn {
+  width: 100%; background: var(--indigo); color: #fff; border: none;
+  border-radius: 8px; padding: .72rem;
+  font-size: .88rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: .45rem;
+  transition: background .12s, box-shadow .12s;
+  box-shadow: 0 0 20px rgba(91,97,245,0.22);
+}
+.deploy-btn:hover:not(:disabled) { background: #4b51e0; box-shadow: 0 0 28px rgba(91,97,245,0.38); }
+.deploy-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ══════════════════════════════════════════════
+   BADGES / PILLS
+══════════════════════════════════════════════ */
+.live-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  background: var(--indigo-d); border: 1px solid rgba(91,97,245,0.25);
+  color: var(--indigo); font-size: .6rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: .12rem .5rem; border-radius: 3px;
+}
+.live-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--indigo); animation: sbdot 1.5s infinite; }
+.done-badge { background: var(--green-d); border-color: rgba(0,224,120,0.2); color: var(--green); }
+.done-badge .live-badge-dot { background: var(--green); animation: none; }
+.fail-badge { background: var(--red-d); border-color: rgba(255,64,96,0.2); color: var(--red); }
+
+/* ══════════════════════════════════════════════
+   MISC
+══════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.mono   { font-family: monospace; }
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.divider { height: 1px; background: var(--border); margin: .5rem 0; }
+
+.inline-link { color: var(--cyan); text-decoration: none; font-size: .75rem; }
+.inline-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══════════════════════════
+     SIDEBAR
+═══════════════════════════ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-mark">
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="tl-grad" x1="0" y1="0" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#5b61f5"/>
+            <stop offset="100%" stop-color="#00cfee"/>
+          </linearGradient>
+          <linearGradient id="tl-iris" x1="0" y1="0" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#9a6df5"/>
+            <stop offset="100%" stop-color="#00cfee"/>
+          </linearGradient>
+        </defs>
+        <!-- outer lens ring -->
+        <circle cx="15" cy="15" r="13" stroke="url(#tl-grad)" stroke-width="1.5" fill="none" opacity="0.5"/>
+        <!-- iris -->
+        <circle cx="15" cy="15" r="7.5" stroke="url(#tl-iris)" stroke-width="1.8" fill="none"/>
+        <!-- pupil -->
+        <circle cx="15" cy="15" r="3" fill="url(#tl-grad)"/>
+        <!-- crosshair ticks -->
+        <line x1="15" y1="1.5" x2="15" y2="5.5"  stroke="url(#tl-grad)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="15" y1="24.5" x2="15" y2="28.5" stroke="url(#tl-grad)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="1.5" y1="15" x2="5.5" y2="15"   stroke="url(#tl-grad)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="24.5" y1="15" x2="28.5" y2="15" stroke="url(#tl-grad)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="sb-brand-text">
+      <div class="sb-name">ThreatLens</div>
+      <div class="sb-badge">SOC</div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-section">Workspace</div>
+    <div class="sb-item active" data-view="dashboard" onclick="navigate('dashboard')">
+      <span class="sb-item-icon">◈</span> Dashboard
+    </div>
+    <div class="sb-item" data-view="scans" onclick="navigate('scans')">
+      <span class="sb-item-icon">◉</span> Scans
+      <span class="sb-item-badge" id="sb-scan-cnt">0</span>
+    </div>
+    <div class="sb-item" data-view="reports" onclick="navigate('reports')">
+      <span class="sb-item-icon">◧</span> Reports
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="sb-section">System</div>
+    <div class="sb-item" data-view="settings" onclick="navigate('settings')">
+      <span class="sb-item-icon">◌</span> Settings
+    </div>
+
+    <div class="sb-divider"></div>
+    <!-- Live scan mini-card -->
+    <div class="sb-live-scan" id="sb-live">
+      <div class="sb-ls-label">
+        <span class="sb-ls-dot"></span> Live Scan
+      </div>
+      <div class="sb-ls-repo truncate" id="sb-ls-repo">—</div>
+      <div class="sb-ls-pbar"><div class="sb-ls-pfill" id="sb-ls-pf"></div></div>
+    </div>
+  </nav>
+</aside>
+
+<!-- ═══════════════════════════
+     MAIN AREA
+═══════════════════════════ -->
+<div class="main-area">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tb-view-title" id="tb-view-title">Dashboard</div>
+
+    <div class="tb-search">
+      <span class="tb-search-icon">⌕</span>
+      <input type="text" placeholder="Search scans, findings…" id="tb-search" oninput="handleSearch(this.value)">
+    </div>
+
+    <div class="tb-spacer"></div>
+
+    <!-- Active scan pill -->
+    <div class="tb-scan-pill" id="tb-pill" onclick="navigate('dashboard')">
+      <span class="tb-scan-dot"></span>
+      <span id="tb-pill-text">Scanning…</span>
+      <span class="tb-scan-pct" id="tb-pill-pct">0%</span>
+    </div>
+
+    <button class="tb-new-scan" onclick="openDrawer()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Scan
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ── DASHBOARD VIEW ── -->
+    <div id="view-dashboard" class="view active">
+
+      <!-- KPI Row -->
+      <div class="kpi-row" id="kpi-row">
+        <div class="kpi risk-kpi" id="kpi-risk">
+          <div class="kpi-label">Risk Score</div>
+          <div class="kpi-val" id="kv-risk">—</div>
+          <div class="kpi-bar"><div class="kpi-fill" id="kf-risk"></div></div>
+        </div>
+        <div class="kpi" id="kpi-total">
+          <div class="kpi-label">Total</div>
+          <div class="kpi-val" id="kv-total">—</div>
+        </div>
+        <div class="kpi crit" id="kpi-crit">
+          <div class="kpi-label">Critical</div>
+          <div class="kpi-val" id="kv-crit">—</div>
+          <div class="kpi-bar"><div class="kpi-fill" id="kf-crit"></div></div>
+        </div>
+        <div class="kpi hi" id="kpi-high">
+          <div class="kpi-label">High</div>
+          <div class="kpi-val" id="kv-high">—</div>
+          <div class="kpi-bar"><div class="kpi-fill" id="kf-high"></div></div>
+        </div>
+        <div class="kpi med" id="kpi-med">
+          <div class="kpi-label">Medium</div>
+          <div class="kpi-val" id="kv-med">—</div>
+          <div class="kpi-bar"><div class="kpi-fill" id="kf-med"></div></div>
+        </div>
+        <div class="kpi lo" id="kpi-low">
+          <div class="kpi-label">Low</div>
+          <div class="kpi-val" id="kv-low">—</div>
+          <div class="kpi-bar"><div class="kpi-fill" id="kf-low"></div></div>
+        </div>
+        <div class="kpi" id="kpi-secrets">
+          <div class="kpi-label">Secrets</div>
+          <div class="kpi-val" id="kv-secrets">—</div>
+        </div>
+        <div class="kpi" id="kpi-deps">
+          <div class="kpi-label">Dep. Vulns</div>
+          <div class="kpi-val" id="kv-deps">—</div>
+        </div>
+      </div>
+
+      <!-- Main 2-col grid -->
+      <div class="dash-grid">
+
+        <!-- LEFT COLUMN -->
+        <div class="dash-left">
+
+          <!-- Live scan / completed / idle -->
+          <div class="panel" id="main-scan-panel">
+            <div class="panel-hdr">
+              <span class="panel-title" id="msp-title">Current Scan</span>
+              <span class="panel-sub"  id="msp-repo"></span>
+              <div class="panel-right">
+                <span id="msp-badge" class="live-badge hidden"><span class="live-badge-dot"></span><span id="msp-badge-txt">Live</span></span>
+                <span id="msp-elapsed" style="font-size:.7rem;font-family:monospace;color:var(--tx3)"></span>
+              </div>
+            </div>
+
+            <!-- Idle state -->
+            <div id="msp-idle" class="empty-state">
+              <div class="empty-state-icon">◈</div>
+              <div class="empty-state-title">No active scan</div>
+              <div class="empty-state-sub">Start a new scan to deploy the security agent pipeline against a GitHub repository.</div>
+              <button class="empty-scan-btn" onclick="openDrawer()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Deploy Agents
+              </button>
+            </div>
+
+            <!-- Running state -->
+            <div id="msp-running" class="live-scan-body hidden">
+              <div class="live-progress-row">
+                <div class="live-ptrack"><div class="live-pfill" id="live-pfill"></div></div>
+                <span class="live-pct"     id="live-pct">0%</span>
+                <span class="live-elapsed" id="live-elapsed">0:00</span>
+              </div>
+              <div class="live-cols">
+                <div class="pipeline" id="pipeline">
+                  <div class="pipe-hdr">Agent Pipeline</div>
+                  <!-- Items injected by JS -->
+                </div>
+                <div class="feed-wrap">
+                  <div class="feed-hdr">
+                    Activity Feed
+                    <span class="feed-cnt" id="feed-cnt"></span>
+                  </div>
+                  <div class="feed-log" id="feed-log"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Completed state -->
+            <div id="msp-done" class="hidden">
+              <div class="scan-complete-body">
+                <div class="sc-ring">
+                  <svg viewBox="0 0 66 66">
+                    <circle class="sc-ring-bg" cx="33" cy="33" r="30"/>
+                    <circle class="sc-ring-fg" id="sc-ring" cx="33" cy="33" r="30"/>
+                  </svg>
+                  <div class="sc-score" id="sc-score">—</div>
+                </div>
+                <div class="sc-info">
+                  <div class="sc-risk-tag" id="sc-risk-tag">—</div>
+                  <div class="sc-repo"   id="sc-repo"></div>
+                  <div class="sc-stats"  id="sc-stats"></div>
+                  <div class="sc-actions" id="sc-actions"></div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /main-scan-panel -->
+
+          <!-- Recent Scans -->
+          <div class="panel">
+            <div class="panel-hdr">
+              <span class="panel-title">Recent Scans</span>
+              <div class="panel-right">
+                <span class="inline-link" onclick="navigate('scans')">View all →</span>
+              </div>
+            </div>
+            <div id="recent-scans-wrap">
+              <table class="scans-tbl">
+                <thead>
+                  <tr>
+                    <th>Repository</th>
+                    <th>Risk</th>
+                    <th>Findings</th>
+                    <th>Duration</th>
+                    <th>When</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-scans-body">
+                  <tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--tx3);font-size:.78rem;">No scans yet</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div><!-- /dash-left -->
+
+        <!-- RIGHT COLUMN -->
+        <div class="dash-right">
+
+          <!-- Architecture -->
+          <div class="panel" id="arch-panel">
+            <div class="panel-hdr">
+              <span class="panel-title">Architecture</span>
+            </div>
+            <div class="arch-body" id="arch-body">
+              <div class="arch-placeholder">Run a scan to detect repository architecture.</div>
+            </div>
+          </div>
+
+          <!-- Top Findings -->
+          <div class="panel" id="findings-panel">
+            <div class="panel-hdr">
+              <span class="panel-title">Top Findings</span>
+              <div class="panel-right">
+                <span class="inline-link" id="findings-report-link" style="display:none" target="_blank">Full report →</span>
+              </div>
+            </div>
+            <div class="findings-body" id="findings-body">
+              <div class="arch-placeholder">No findings yet.</div>
+            </div>
+          </div>
+
+          <!-- Source Breakdown -->
+          <div class="panel" id="breakdown-panel">
+            <div class="panel-hdr">
+              <span class="panel-title">Finding Sources</span>
+            </div>
+            <div class="breakdown-body" id="breakdown-body">
+              <div class="arch-placeholder">Awaiting scan data.</div>
+            </div>
+          </div>
+
+        </div><!-- /dash-right -->
+      </div><!-- /dash-grid -->
+    </div><!-- /view-dashboard -->
+
+    <!-- ── SCANS VIEW ── -->
+    <div id="view-scans" class="view">
+      <div class="scans-view-hdr">
+        <div class="scans-view-title">All Scans</div>
+        <div class="scans-view-count" id="scans-view-count"></div>
+        <div style="margin-left:auto">
+          <button class="tb-new-scan" onclick="openDrawer()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Scan
+          </button>
+        </div>
+      </div>
+      <div class="panel">
+        <table class="scans-tbl">
+          <thead>
+            <tr>
+              <th>Repository</th>
+              <th>Status</th>
+              <th>Risk</th>
+              <th>Findings</th>
+              <th>Duration</th>
+              <th>Scanned</th>
+              <th>Report</th>
+            </tr>
+          </thead>
+          <tbody id="all-scans-body">
+            <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--tx3);">No scans yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /view-scans -->
+
+    <!-- ── REPORTS VIEW ── -->
+    <div id="view-reports" class="view">
+      <div class="scans-view-hdr">
+        <div class="scans-view-title">Reports</div>
+      </div>
+      <div id="reports-view-content">
+        <div class="reports-empty">Select a completed scan from the Scans view to view its report here.</div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS VIEW ── -->
+    <div id="view-settings" class="view">
+      <div class="scans-view-hdr">
+        <div class="scans-view-title">Settings</div>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <div class="settings-section-title">LLM Provider</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">API Key</div>
+              <div class="settings-sub">Stored in browser only. Used for LLM enrichment.</div>
+            </div>
+            <input type="password" class="settings-input" id="setting-api-key" placeholder="sk-ant-…" oninput="saveSetting('api_key',this.value)">
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Skip LLM by Default</div>
+              <div class="settings-sub">Run scanner-only mode unless overridden per scan.</div>
+            </div>
+            <label class="settings-toggle">
+              <input type="checkbox" id="setting-skip-llm" onchange="saveSetting('skip_llm',this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Scan Limits</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Max Repository Size</div>
+              <div class="settings-sub">Scans are aborted if working tree exceeds 500 MB.</div>
+            </div>
+            <span style="font-size:.8rem;color:var(--tx3)">500 MB</span>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Concurrent Scans</div>
+              <div class="settings-sub">Maximum parallel scan jobs.</div>
+            </div>
+            <span style="font-size:.8rem;color:var(--tx3)">3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <div class="stb-agents" id="stb-agents">
+      <span class="stb-agent"><span class="stb-dot" id="stb-semgrep"></span>Semgrep</span>
+      <span class="stb-agent"><span class="stb-dot" id="stb-gitleaks"></span>Gitleaks</span>
+      <span class="stb-agent"><span class="stb-dot" id="stb-trivy"></span>Trivy</span>
+      <span class="stb-agent"><span class="stb-dot" id="stb-pip"></span>pip-audit</span>
+      <span class="stb-agent"><span class="stb-dot" id="stb-npm"></span>npm audit</span>
+      <span class="stb-agent"><span class="stb-dot" id="stb-llm"></span>LLM Agent</span>
+      <span class="stb-agent"><span class="stb-dot" id="stb-val"></span>Validator</span>
+    </div>
+    <div class="stb-right">ThreatLens · Evidence-based security assessment</div>
+  </div>
+
+</div><!-- /main-area -->
+</div><!-- /app -->
+
+<!-- Overlay + Drawer -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hdr">
+    <div class="drawer-title">Deploy Security Agents</div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div id="drawer-err" class="form-err-box hidden"></div>
+    <div class="field">
+      <label class="field-label" for="dr-url">GitHub Repository URL</label>
+      <input type="text" class="field-input" id="dr-url"
+             placeholder="https://github.com/owner/repo"
+             autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label class="field-toggle-row" for="dr-skip">
+        <span class="settings-toggle" style="flex-shrink:0">
+          <input type="checkbox" id="dr-skip">
+          <span class="toggle-slider"></span>
+        </span>
+        <div>
+          <div class="field-label" style="margin:0;cursor:pointer">Skip LLM Enrichment</div>
+          <div class="field-toggle-sub">Faster · no API key required · scanner-only output</div>
+        </div>
+      </label>
+    </div>
+    <div style="margin-top:1.25rem;padding:.85rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:.75rem;color:var(--tx3);line-height:1.6">
+      Agents deployed:<br>
+      <span style="color:var(--indigo)">Code Analysis</span> ·
+      <span style="color:var(--amber)">Secret Detection</span> ·
+      <span style="color:var(--red)">CVE Intelligence</span> ·
+      <span style="color:var(--green)">Dependency Audit</span> ·
+      <span style="color:var(--purple)">LLM Risk</span> ·
+      <span style="color:var(--cyan)">Validation</span>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="deploy-btn" id="deploy-btn" onclick="submitScan()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Deploy Agents
+    </button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════════ */
+let _state = {
+  activeScanId:  null,
+  activeScanUrl: null,
+  scanHistory:   [],    // from /api/scans
+  lastEvents:    0,
+  feedCount:     0,
+  cveAccum:      0,
+  secretAccum:   0,
+  scanStart:     null,
+  currentArch:   null,
+  currentJobId:  null,
+  viewingReport: null,
+};
+
+let _pollTimer = null;
+let _tickTimer = null;
+
+/* ════════════════════════════════════════════════════════════
+   AGENT CONFIG
+════════════════════════════════════════════════════════════ */
+const AGENTS = {
+  url_validation:       { name:"Intake Agent",           desc:"URL Validation",      cls:"ac-muted" },
+  job_created:          { name:"Orchestrator",           desc:"Job Initialization",  cls:"ac-muted" },
+  cloning:              { name:"Repository Agent",       desc:"Clone & Prepare",     cls:"ac-cyan" },
+  checking_llm_config:  { name:"LLM Gateway",            desc:"Provider Config",     cls:"ac-purple" },
+  checking_tools:       { name:"Tool Registry",          desc:"Scanner Verification",cls:"ac-muted" },
+  architecture_mapping: { name:"Architecture Agent",     desc:"Stack Detection",     cls:"ac-cyan" },
+  scanning_semgrep:     { name:"Code Analysis Agent",    desc:"Semgrep SAST",        cls:"ac-indigo" },
+  scanning_gitleaks:    { name:"Secret Detection Agent", desc:"Gitleaks",            cls:"ac-amber" },
+  scanning_trivy:       { name:"CVE Intelligence Agent", desc:"Trivy Scanner",       cls:"ac-red" },
+  scanning_pip_audit:   { name:"Python Dep. Agent",      desc:"pip-audit",           cls:"ac-green" },
+  scanning_npm_audit:   { name:"Node.js Dep. Agent",     desc:"npm audit",           cls:"ac-green" },
+  normalizing:          { name:"Data Pipeline",          desc:"Normalize & Merge",   cls:"ac-purple" },
+  llm_enrichment:       { name:"LLM Risk Agent",         desc:"Exploit Analysis",    cls:"ac-purple" },
+  validation:           { name:"Validation Engine",      desc:"Dedup & Confirm",     cls:"ac-cyan" },
+  report_generation:    { name:"Reporting Agent",        desc:"Generate Report",     cls:"ac-indigo" },
+  cleanup:              { name:"Cleanup Agent",          desc:"Secure Disposal",     cls:"ac-muted" },
+  completed:            { name:"Mission Control",        desc:"All agents done",     cls:"ac-green" },
+};
+
+const PIPE_STAGES = [
+  "url_validation","job_created","cloning","checking_llm_config","checking_tools",
+  "architecture_mapping","scanning_semgrep","scanning_gitleaks","scanning_trivy",
+  "scanning_pip_audit","scanning_npm_audit","normalizing","llm_enrichment",
+  "validation","report_generation","cleanup","completed",
+];
+
+/* ════════════════════════════════════════════════════════════
+   RISK SCORE
+════════════════════════════════════════════════════════════ */
+const RING_COLORS = { pending:"#2a2a38", low:"#00e078", moderate:"#00cfee", high:"#ffaa18", critical:"#ff4060" };
+
+function calcScore(s) {
+  if (!s) return null;
+  const c=s.critical||0, h=s.high||0, m=s.medium||0, l=s.low||0;
+  if (!(c||h||m||l)) return null;
+  const raw = Math.min(c*12,55)+Math.min(h*2.5,33)+Math.min(m*0.8,14)+Math.min(l*0.2,5);
+  return Math.min(100,Math.round(raw));
+}
+
+function scoreLevel(n) {
+  if (n===null) return {label:"Pending", cls:"pending"};
+  if (n<=25)    return {label:"Low Risk",       cls:"low"};
+  if (n<=50)    return {label:"Moderate Risk",  cls:"moderate"};
+  if (n<=75)    return {label:"High Risk",      cls:"high"};
+  return              {label:"Critical Risk",   cls:"critical"};
+}
+
+/* ════════════════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════════════════ */
+const VIEW_TITLES = { dashboard:"Dashboard", scans:"Scans", reports:"Reports", settings:"Settings" };
+
+function navigate(view) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + view).classList.add("active");
+  document.querySelectorAll(".sb-item").forEach(el => el.classList.remove("active"));
+  const item = document.querySelector(`.sb-item[data-view="${view}"]`);
+  if (item) item.classList.add("active");
+  document.getElementById("tb-view-title").textContent = VIEW_TITLES[view] || view;
+  if (view === "scans")   renderAllScans();
+  if (view === "reports") renderReportsView();
+}
+
+/* ════════════════════════════════════════════════════════════
+   DRAWER (New Scan)
+════════════════════════════════════════════════════════════ */
+function openDrawer() {
+  // Apply saved default
+  const skip = loadSetting("skip_llm");
+  if (skip !== null) document.getElementById("dr-skip").checked = skip;
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("overlay").classList.add("open");
+  setTimeout(() => document.getElementById("dr-url").focus(), 250);
+}
+
+function closeDrawer() {
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("overlay").classList.remove("open");
+  document.getElementById("drawer-err").classList.add("hidden");
+}
+
+async function submitScan() {
+  const url  = document.getElementById("dr-url").value.trim();
+  const skip = document.getElementById("dr-skip").checked;
+  const btn  = document.getElementById("deploy-btn");
+  const err  = document.getElementById("drawer-err");
+
+  err.classList.add("hidden");
+  if (!url) { showDrawerErr("Enter a GitHub repository URL."); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Deploying…";
+
+  try {
+    const resp = await fetch("/scan", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({repo_url: url, skip_llm: skip}),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      const msg = Array.isArray(data.detail) ? data.detail[0]?.msg : (data.detail || "Failed to start.");
+      showDrawerErr(msg);
+      btn.disabled = false; btn.textContent = "Deploy Agents"; return;
+    }
+
+    closeDrawer();
+    document.getElementById("dr-url").value = "";
+    startLiveScan(data.job_id, url);
+
+  } catch(e) {
+    showDrawerErr("Network error: " + e.message);
+  }
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Deploy Agents`;
+}
+
+function showDrawerErr(msg) {
+  const el = document.getElementById("drawer-err");
+  el.textContent = msg; el.classList.remove("hidden");
+}
+
+/* ════════════════════════════════════════════════════════════
+   START LIVE SCAN
+════════════════════════════════════════════════════════════ */
+function startLiveScan(jobId, url) {
+  _state.activeScanId  = jobId;
+  _state.activeScanUrl = url;
+  _state.lastEvents    = 0;
+  _state.feedCount     = 0;
+  _state.cveAccum      = 0;
+  _state.secretAccum   = 0;
+  _state.scanStart     = Date.now();
+  _state.currentArch   = null;
+
+  // Reset pipeline HTML
+  buildPipelineHTML();
+
+  // Reset feed
+  document.getElementById("feed-log").innerHTML = "";
+
+  // Show running panel
+  showScanState("running");
+
+  // Update sidebar live card
+  const repoShort = url.replace("https://github.com/","");
+  document.getElementById("sb-ls-repo").textContent = repoShort;
+  document.getElementById("sb-live").classList.add("visible");
+  document.getElementById("sb-ls-pf").style.width = "0%";
+
+  // Update topbar pill
+  document.getElementById("tb-pill").classList.add("visible");
+  document.getElementById("tb-pill-text").textContent = repoShort.split("/").pop();
+  document.getElementById("tb-pill-pct").textContent = "0%";
+
+  // Show in header
+  document.getElementById("msp-repo").textContent = repoShort;
+
+  // Start timers
+  clearInterval(_pollTimer);
+  clearInterval(_tickTimer);
+  _tickTimer = setInterval(tickElapsed, 1000);
+  _pollTimer = setInterval(() => pollScan(jobId), 1000);
+  pollScan(jobId);
+
+  // Navigate to dashboard
+  navigate("dashboard");
+  updateStatusBarRunning("checking_tools");
+}
+
+function buildPipelineHTML() {
+  const pipe = document.getElementById("pipeline");
+  pipe.innerHTML = '<div class="pipe-hdr">Agent Pipeline</div>';
+  for (const stage of PIPE_STAGES) {
+    const cfg = AGENTS[stage] || {name:stage, desc:"", cls:"ac-muted"};
+    const div = document.createElement("div");
+    div.className = "pipe-item";
+    div.setAttribute("data-stage", stage);
+    div.setAttribute("data-status", "pending");
+    div.innerHTML = `<div class="pipe-dot"></div>
+      <div class="pipe-info">
+        <div class="pipe-name">${esc(cfg.name)}</div>
+        <div class="pipe-sub">${esc(cfg.desc)}</div>
+      </div>
+      <div class="pipe-time"></div>`;
+    pipe.appendChild(div);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   POLL SCAN
+════════════════════════════════════════════════════════════ */
+async function pollScan(jobId) {
+  try {
+    const resp = await fetch("/status/" + jobId);
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    // Progress
+    const pct = data.percent || 0;
+    document.getElementById("live-pfill").style.width = pct + "%";
+    document.getElementById("live-pct").textContent   = pct + "%";
+    document.getElementById("sb-ls-pf").style.width   = pct + "%";
+    document.getElementById("tb-pill-pct").textContent = pct + "%";
+
+    // New events
+    const events = data.events || [];
+    if (events.length > _state.lastEvents) {
+      events.slice(_state.lastEvents).forEach(ev => processEvent(ev, data));
+      _state.lastEvents = events.length;
+    }
+
+    if (data.status === "completed") {
+      clearInterval(_pollTimer); clearInterval(_tickTimer);
+      await onScanComplete(data);
+    } else if (data.status === "failed") {
+      clearInterval(_pollTimer); clearInterval(_tickTimer);
+      onScanFailed(data);
+    }
+  } catch(e) { console.warn("poll:", e); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   PROCESS EVENT
+════════════════════════════════════════════════════════════ */
+function processEvent(ev, fullData) {
+  // Update pipeline dot
+  const pitem = document.querySelector(`.pipe-item[data-stage="${ev.stage}"]`);
+  if (pitem) {
+    pitem.setAttribute("data-status", ev.status);
+    const tEl = pitem.querySelector(".pipe-time");
+    if (tEl && ev.timestamp) tEl.textContent = fmtTime(ev.timestamp);
+    if (ev.status === "running") pitem.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  const d = ev.details || {};
+
+  // Extract architecture
+  if (ev.stage === "architecture_mapping" && ev.status === "completed") {
+    _state.currentArch = d;
+    renderArch(d);
+  }
+
+  // Accumulate metrics
+  if (ev.status === "completed") {
+    if (ev.stage === "scanning_gitleaks" && d.count != null) {
+      _state.secretAccum += d.count;
+      setKpi("kpi-secrets","kv-secrets",_state.secretAccum);
+    }
+    if (["scanning_trivy","scanning_pip_audit","scanning_npm_audit"].includes(ev.stage) && d.count != null) {
+      _state.cveAccum += d.count;
+      setKpi("kpi-deps","kv-deps",_state.cveAccum);
+    }
+    if (ev.stage === "validation" && d.critical != null) {
+      const s = {critical:d.critical, high:d.high, medium:d.medium, low:d.low,
+                 findings_total:(d.confirmed||0)+(d.needs_review||0)};
+      updateKpis(s);
+      updateStatusBarDone();
+    }
+    if (ev.stage === "checking_tools" && d.tools) {
+      updateStatusBarFromTools(d.tools);
+    }
+  }
+
+  // Status bar: set running agent
+  if (ev.status === "running") {
+    const toolMap = {
+      scanning_semgrep:"semgrep", scanning_gitleaks:"gitleaks", scanning_trivy:"trivy",
+      scanning_pip_audit:"pip", scanning_npm_audit:"npm",
+      llm_enrichment:"llm", validation:"val",
+    };
+    if (toolMap[ev.stage]) updateStatusBarRunning(toolMap[ev.stage]);
+  }
+
+  // Feed entry
+  addFeedEntry(ev);
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCAN COMPLETE / FAILED
+════════════════════════════════════════════════════════════ */
+async function onScanComplete(data) {
+  const summary = data.summary || {};
+  const jobId   = _state.activeScanId;
+  const score   = calcScore(summary);
+  const lv      = scoreLevel(score);
+
+  // Update KPIs
+  updateKpis(summary);
+
+  // Show completed panel
+  const ring = document.getElementById("sc-ring");
+  ring.style.strokeDasharray  = "188.5";
+  ring.style.stroke           = RING_COLORS[lv.cls];
+  ring.style.strokeDashoffset = score !== null
+    ? (188.5 - (score/100)*188.5)
+    : "188.5";
+  document.getElementById("sc-score").textContent = score ?? "—";
+
+  const tag = document.getElementById("sc-risk-tag");
+  tag.className = "sc-risk-tag " + lv.cls;
+  tag.textContent = lv.label;
+
+  const repo = (_state.activeScanUrl||"").replace("https://github.com/","");
+  document.getElementById("sc-repo").textContent = repo;
+  document.getElementById("sc-stats").innerHTML =
+    `<strong>${summary.confirmed||0}</strong> confirmed &nbsp;·&nbsp;
+     <strong>${summary.needs_review||0}</strong> need review &nbsp;·&nbsp;
+     <strong>${summary.findings_total||0}</strong> total`;
+
+  const rUrl = data.report_url || summary.report_url;
+  document.getElementById("sc-actions").innerHTML = `
+    ${rUrl ? `<a class="sc-btn sc-btn-p" href="${esc(rUrl)}" target="_blank">View Report</a>` : ""}
+    ${rUrl ? `<a class="sc-btn sc-btn-o" href="/report/${esc(jobId)}/markdown">Download</a>` : ""}
+    <button class="sc-btn sc-btn-o" onclick="openDrawer()">New Scan</button>
+  `;
+
+  showScanState("done");
+  updateMspBadge("done");
+
+  // Update sidebar
+  document.getElementById("sb-live").classList.remove("visible");
+  document.getElementById("tb-pill").classList.remove("visible");
+
+  // Findings report link
+  if (rUrl) {
+    const rl = document.getElementById("findings-report-link");
+    rl.href = rUrl; rl.style.display = "inline";
+  }
+
+  // Load top findings
+  await loadFindings(jobId);
+
+  // Refresh scan history
+  await refreshHistory();
+  renderBreakdown(data);
+}
+
+function onScanFailed(data) {
+  showScanState("done");
+  updateMspBadge("failed");
+
+  const tag = document.getElementById("sc-risk-tag");
+  tag.className = "sc-risk-tag unknown";
+  tag.textContent = "Scan Failed";
+
+  const events = data.events || [];
+  const failEvt = [...events].reverse().find(e => e.status === "failed");
+  const cfg = failEvt ? AGENTS[failEvt.stage] : null;
+
+  document.getElementById("sc-repo").textContent = (_state.activeScanUrl||"").replace("https://github.com/","");
+  document.getElementById("sc-stats").innerHTML  = `<span style="color:var(--red)">${data.error || "Unknown error"}</span>`;
+  document.getElementById("sc-score").textContent = "—";
+  document.getElementById("sc-actions").innerHTML = `<button class="sc-btn sc-btn-o" onclick="openDrawer()">Retry</button>`;
+
+  document.getElementById("sb-live").classList.remove("visible");
+  document.getElementById("tb-pill").classList.remove("visible");
+  refreshHistory();
+  updateStatusBarDone();
+}
+
+/* ════════════════════════════════════════════════════════════
+   SHOW SCAN STATE
+════════════════════════════════════════════════════════════ */
+function showScanState(state) {
+  // state: "idle" | "running" | "done"
+  document.getElementById("msp-idle").classList.toggle("hidden",    state !== "idle");
+  document.getElementById("msp-running").classList.toggle("hidden", state !== "running");
+  document.getElementById("msp-done").classList.toggle("hidden",    state !== "done");
+
+  const panel = document.getElementById("main-scan-panel");
+  panel.classList.remove("live","complete","failed");
+  if (state === "running") panel.classList.add("live");
+  if (state === "done")    panel.classList.add("complete");
+}
+
+function updateMspBadge(state) {
+  const badge = document.getElementById("msp-badge");
+  const txt   = document.getElementById("msp-badge-txt");
+  badge.classList.remove("hidden","done-badge","fail-badge");
+  if (state === "running") {
+    badge.classList.remove("done-badge","fail-badge");
+    txt.textContent = "Live";
+  } else if (state === "done") {
+    badge.classList.add("done-badge");
+    txt.textContent = "Complete";
+  } else if (state === "failed") {
+    badge.classList.add("fail-badge");
+    txt.textContent = "Failed";
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   KPI UPDATES
+════════════════════════════════════════════════════════════ */
+function updateKpis(summary) {
+  const c = summary.critical||0, h = summary.high||0, m = summary.medium||0, l = summary.low||0;
+  const total = summary.findings_total || (c+h+m+l);
+  const score = calcScore(summary);
+
+  setKpi("kpi-risk",    "kv-risk",  score, "kf-risk",  100);
+  setKpi("kpi-total",   "kv-total", total);
+  setKpi("kpi-crit",    "kv-crit",  c, "kf-crit", Math.max(c,h,m,l)||1);
+  setKpi("kpi-high",    "kv-high",  h, "kf-high", Math.max(c,h,m,l)||1);
+  setKpi("kpi-med",     "kv-med",   m, "kf-med",  Math.max(c,h,m,l)||1);
+  setKpi("kpi-low",     "kv-low",   l, "kf-low",  Math.max(c,h,m,l)||1);
+}
+
+function setKpi(cardId, valId, val, fillId, maxVal) {
+  const card = document.getElementById(cardId);
+  const valEl = document.getElementById(valId);
+  if (!card || !valEl || val === null || val === undefined) return;
+  card.classList.add("lit");
+  animCount(valEl, parseInt(valEl.textContent)||0, val, 700);
+  if (fillId) {
+    const fill = document.getElementById(fillId);
+    if (fill) setTimeout(() => { fill.style.width = (val / (maxVal||1) * 100) + "%"; }, 100);
+  }
+}
+
+function animCount(el, from, to, ms) {
+  const t0 = performance.now();
+  const step = (now) => {
+    const p = Math.min((now-t0)/ms, 1);
+    el.textContent = Math.round(from + (to-from)*(1-Math.pow(1-p,3)));
+    if (p<1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ════════════════════════════════════════════════════════════
+   FEED
+════════════════════════════════════════════════════════════ */
+function addFeedEntry(ev) {
+  const feedEl = document.getElementById("feed-log");
+  const cfg    = AGENTS[ev.stage] || {name:ev.stage, cls:"ac-muted"};
+  const dets   = buildFeedDets(ev);
+
+  const entry = document.createElement("div");
+  entry.className = "flog-entry";
+
+  let body = `<div class="flog-agent ${cfg.cls}">${esc(cfg.name)}</div>`;
+  body += `<div class="flog-msg">${esc(ev.message)}</div>`;
+  if (dets) body += `<div class="flog-det">${dets}</div>`;
+  if (ev.status === "running") body += `<div class="flog-dots"><span></span><span></span><span></span></div>`;
+
+  entry.innerHTML = `<div class="flog-time">${esc(fmtTime(ev.timestamp))}</div><div class="flog-body">${body}</div>`;
+  feedEl.appendChild(entry);
+  feedEl.scrollTop = feedEl.scrollHeight;
+
+  _state.feedCount++;
+  document.getElementById("feed-cnt").textContent = `${_state.feedCount} events`;
+}
+
+function buildFeedDets(ev) {
+  const d = ev.details || {};
+  const lines = [];
+  if (ev.stage === "architecture_mapping" && ev.status === "completed") {
+    let s = d.language || "";
+    if (d.framework) s += " · " + d.framework;
+    if (s) lines.push("Stack: " + esc(s));
+    if (d.database?.length)  lines.push("DB: " + esc(d.database.join(", ")));
+    if (d.is_monorepo) lines.push("Monorepo architecture");
+  }
+  if (ev.stage === "checking_tools" && ev.status === "completed" && d.tools)
+    lines.push(d.tools.filter(t=>t.installed).map(t=>t.name).join(" · "));
+  if (["scanning_semgrep","scanning_gitleaks","scanning_trivy","scanning_pip_audit","scanning_npm_audit"].includes(ev.stage)
+      && ev.status === "completed" && d.count != null)
+    lines.push(`${d.count} finding${d.count!==1?"s":""} recorded`);
+  if (ev.stage === "normalizing" && ev.status === "completed" && d.by_tool) {
+    const parts = Object.entries(d.by_tool).filter(([,v])=>v>0).map(([k,v])=>`${k}:${v}`);
+    if (parts.length) lines.push(parts.join("  ·  "));
+  }
+  if (ev.stage === "validation" && ev.status === "completed" && d.critical != null)
+    lines.push(`Crit:${d.critical}  High:${d.high}  Med:${d.medium}  Low:${d.low}`);
+  if (ev.stage === "cleanup" && ev.status === "completed")
+    lines.push(d.deleted ? "Repo deleted from disk" : "Deletion failed");
+  return lines.join("<br>");
+}
+
+/* ════════════════════════════════════════════════════════════
+   ELAPSED TIMER
+════════════════════════════════════════════════════════════ */
+function tickElapsed() {
+  if (!_state.scanStart) return;
+  const s = Math.floor((Date.now()-_state.scanStart)/1000);
+  const t = `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+  document.getElementById("live-elapsed").textContent = t;
+  document.getElementById("msp-elapsed").textContent  = t;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ARCHITECTURE PANEL
+════════════════════════════════════════════════════════════ */
+function renderArch(d) {
+  const body = document.getElementById("arch-body");
+  if (!d) { body.innerHTML = '<div class="arch-placeholder">No architecture data.</div>'; return; }
+
+  const repoUrl = _state.activeScanUrl || "";
+  const repoName = repoUrl.replace("https://github.com/","");
+
+  let html = `<div class="arch-repo-name">${esc(repoName)}</div>`;
+
+  const row = (key, val) => val
+    ? `<div class="arch-row"><span class="arch-key">${esc(key)}</span><span class="arch-val">${val}</span></div>`
+    : "";
+
+  const chips = (arr) => (arr||[]).map(v=>`<span class="chip">${esc(v)}</span>`).join("");
+
+  html += row("Language",  d.language ? `<span class="chip">${esc(d.language)}</span>` : null);
+  html += row("Framework", d.framework ? `<span class="chip">${esc(d.framework)}</span>` : null);
+  html += row("Database",  d.database?.length ? chips(d.database) : null);
+  html += row("Deploy",    d.deployment?.length ? chips(d.deployment.slice(0,4)) : null);
+  html += row("Packages",  d.package_manager?.length ? chips(d.package_manager) : null);
+  if (d.is_monorepo) html += row("Type", '<span class="chip">Monorepo</span>');
+
+  body.innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════════════════
+   TOP FINDINGS
+════════════════════════════════════════════════════════════ */
+async function loadFindings(jobId) {
+  try {
+    const resp = await fetch(`/api/scans/${jobId}/findings`);
+    if (!resp.ok) return;
+    const findings = await resp.json();
+    renderFindings(findings);
+  } catch(e) { console.warn("findings load:", e); }
+}
+
+function renderFindings(findings) {
+  const body = document.getElementById("findings-body");
+  if (!findings || !findings.length) {
+    body.innerHTML = '<div class="arch-placeholder">No findings extracted.</div>';
+    return;
+  }
+
+  body.innerHTML = findings.map(f => `
+    <div class="finding-item">
+      <span class="find-sev ${esc(f.severity)}"></span>
+      <div class="find-body">
+        <div class="find-title">${esc(f.title)}</div>
+        <div class="find-meta">${esc(f.file)}${f.line ? ':'+f.line : ''}</div>
+      </div>
+      <span class="find-src-tag ${esc(f.source)}">${esc(f.source)}</span>
+    </div>
+  `).join("");
+}
+
+/* ════════════════════════════════════════════════════════════
+   SOURCE BREAKDOWN
+════════════════════════════════════════════════════════════ */
+function renderBreakdown(data) {
+  const events = data.events || [];
+  let code = 0, secrets = 0, deps = 0;
+  for (const ev of events) {
+    if (ev.status !== "completed") continue;
+    const d = ev.details || {};
+    if (ev.stage === "scanning_semgrep")   code    += d.count||0;
+    if (ev.stage === "scanning_gitleaks")  secrets += d.count||0;
+    if (["scanning_trivy","scanning_pip_audit","scanning_npm_audit"].includes(ev.stage)) deps += d.count||0;
+  }
+  const maxV = Math.max(code, secrets, deps, 1);
+  const body = document.getElementById("breakdown-body");
+  body.innerHTML = `
+    <div class="bk-row bk-code">
+      <div class="bk-hdr"><span class="bk-label">Code</span><span class="bk-count">${code}</span></div>
+      <div class="bk-track"><div class="bk-fill" style="width:0%" id="bk-code"></div></div>
+    </div>
+    <div class="bk-row bk-secrets">
+      <div class="bk-hdr"><span class="bk-label">Secrets</span><span class="bk-count">${secrets}</span></div>
+      <div class="bk-track"><div class="bk-fill" style="width:0%" id="bk-sec"></div></div>
+    </div>
+    <div class="bk-row bk-deps">
+      <div class="bk-hdr"><span class="bk-label">Dependencies</span><span class="bk-count">${deps}</span></div>
+      <div class="bk-track"><div class="bk-fill" style="width:0%" id="bk-dep"></div></div>
+    </div>`;
+  setTimeout(() => {
+    document.getElementById("bk-code").style.width = (code/maxV*100)+"%";
+    document.getElementById("bk-sec").style.width  = (secrets/maxV*100)+"%";
+    document.getElementById("bk-dep").style.width  = (deps/maxV*100)+"%";
+  }, 150);
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCAN HISTORY
+════════════════════════════════════════════════════════════ */
+async function refreshHistory() {
+  try {
+    const resp = await fetch("/api/scans");
+    if (resp.ok) _state.scanHistory = await resp.json();
+  } catch(e) {}
+  renderRecentScans();
+  updateSidebarScanCount();
+}
+
+function updateSidebarScanCount() {
+  const cnt = _state.scanHistory.filter(s => s.status === "completed" || s.status === "failed").length;
+  document.getElementById("sb-scan-cnt").textContent = cnt;
+}
+
+function renderRecentScans() {
+  const tbody = document.getElementById("recent-scans-body");
+  const scans = _state.scanHistory.slice(0, 8);
+  if (!scans.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--tx3);font-size:.78rem;">No scans yet</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = scans.map(s => scanRowHtml(s, false)).join("");
+}
+
+function renderAllScans() {
+  const tbody = document.getElementById("all-scans-body");
+  const cnt   = document.getElementById("scans-view-count");
+  const scans = _state.scanHistory;
+  cnt.textContent = `${scans.length} total`;
+  if (!scans.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--tx3);">No scans yet</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = scans.map(s => scanRowHtml(s, true)).join("");
+}
+
+function scanRowHtml(s, full) {
+  const riskNum  = s.risk_score;
+  const riskLv   = scoreLevel(riskNum);
+  const repoUrl  = (s.repo_url||"").replace("https://github.com/","");
+  const dur      = s.duration_s != null ? fmtDur(s.duration_s) : "—";
+  const age      = s.created_at ? timeAgo(s.created_at) : "—";
+  const dotCls   = s.status === "completed" ? "completed" : s.status === "running" ? "running" : s.status === "queued" ? "queued" : "failed";
+  const riskTag  = riskNum != null
+    ? `<span class="risk-pill ${riskLv.cls}"><span class="risk-num">${riskNum}</span></span>`
+    : `<span class="risk-pill none">—</span>`;
+
+  const jobId = s.job_id;
+  const reportCell = full
+    ? (s.report_path
+      ? `<a class="inline-link" href="/report/${esc(jobId)}" target="_blank">View</a>`
+      : `<span style="color:var(--tx4)">—</span>`)
+    : "";
+
+  const onClick = `onclick="selectScan('${esc(jobId)}')"`;
+
+  if (full) {
+    return `<tr ${onClick}>
+      <td><span class="status-dot ${dotCls}"></span><span class="tbl-url truncate">${esc(repoUrl)}</span></td>
+      <td><span style="font-size:.72rem;text-transform:capitalize;color:var(--tx3)">${esc(s.status)}</span></td>
+      <td>${riskTag}</td>
+      <td class="tbl-mono">${s.total ?? "—"}</td>
+      <td class="tbl-age">${dur}</td>
+      <td class="tbl-age">${age}</td>
+      <td>${reportCell}</td>
+    </tr>`;
+  }
+  return `<tr ${onClick}>
+    <td><span class="status-dot ${dotCls}"></span><span class="tbl-url truncate">${esc(repoUrl)}</span></td>
+    <td>${riskTag}</td>
+    <td class="tbl-mono">${s.total ?? "—"}</td>
+    <td class="tbl-age">${dur}</td>
+    <td class="tbl-age">${age}</td>
+  </tr>`;
+}
+
+function selectScan(jobId) {
+  const s = _state.scanHistory.find(x => x.job_id === jobId);
+  if (!s) return;
+
+  // Populate right panels from DB data
+  if (s.architecture) {
+    try { renderArch(JSON.parse(s.architecture)); } catch(e){}
+  }
+
+  // Update KPIs from this scan
+  updateKpis({ critical:s.critical, high:s.high, medium:s.medium, low:s.low, findings_total:s.total });
+
+  // Show completed state
+  const score = s.risk_score;
+  const lv    = scoreLevel(score);
+  const ring  = document.getElementById("sc-ring");
+  ring.style.strokeDasharray  = "188.5";
+  ring.style.stroke           = RING_COLORS[lv.cls];
+  ring.style.strokeDashoffset = score != null ? (188.5-(score/100)*188.5) : "188.5";
+  document.getElementById("sc-score").textContent = score ?? "—";
+  const tag = document.getElementById("sc-risk-tag");
+  tag.className   = "sc-risk-tag " + lv.cls;
+  tag.textContent = lv.label;
+  document.getElementById("sc-repo").textContent = (s.repo_url||"").replace("https://github.com/","");
+  document.getElementById("sc-stats").innerHTML  =
+    `<strong>${s.confirmed||0}</strong> confirmed &nbsp;·&nbsp;
+     <strong>${s.needs_review||0}</strong> need review &nbsp;·&nbsp;
+     <strong>${s.total||0}</strong> total`;
+
+  const rUrl = s.report_path ? `/report/${jobId}` : null;
+  document.getElementById("sc-actions").innerHTML = `
+    ${rUrl ? `<a class="sc-btn sc-btn-p" href="${esc(rUrl)}" target="_blank">View Report</a>` : ""}
+    ${rUrl ? `<a class="sc-btn sc-btn-o" href="/report/${esc(jobId)}/markdown">Download</a>` : ""}
+    <button class="sc-btn sc-btn-o" onclick="openDrawer()">New Scan</button>
+  `;
+
+  document.getElementById("msp-repo").textContent = (s.repo_url||"").replace("https://github.com/","");
+  showScanState("done");
+  updateMspBadge(s.status === "failed" ? "failed" : "done");
+
+  // Load findings async
+  if (s.report_path) loadFindings(jobId);
+
+  // Navigate to dashboard
+  navigate("dashboard");
+}
+
+/* ════════════════════════════════════════════════════════════
+   REPORTS VIEW
+════════════════════════════════════════════════════════════ */
+function renderReportsView() {
+  const el = document.getElementById("reports-view-content");
+  const completed = _state.scanHistory.filter(s => s.report_path);
+  if (!completed.length) {
+    el.innerHTML = `<div class="reports-empty">No completed reports yet. Run a scan to generate a report.</div>`;
+    return;
+  }
+
+  // Show last completed report in iframe
+  const latest = completed[0];
+  const jobId  = latest.job_id;
+  el.innerHTML = `
+    <div style="display:flex;gap:.75rem;margin-bottom:.75rem;flex-wrap:wrap">
+      <select id="report-select" style="background:var(--bg2);border:1px solid var(--border-b);border-radius:7px;padding:.4rem .75rem;font-size:.8rem;color:var(--tx);outline:none;"
+              onchange="loadReportFrame(this.value)">
+        ${completed.map(s => `<option value="${esc(s.job_id)}">${esc((s.repo_url||"").replace("https://github.com/",""))} — ${timeAgo(s.created_at)}</option>`).join("")}
+      </select>
+      <a class="sc-btn sc-btn-o" href="/report/${esc(jobId)}/markdown" style="font-size:.78rem;padding:.38rem .85rem;">Download Markdown</a>
+    </div>
+    <iframe id="report-frame" class="report-frame" src="/report/${esc(jobId)}"></iframe>
+  `;
+}
+
+function loadReportFrame(jobId) {
+  const frame = document.getElementById("report-frame");
+  if (frame) frame.src = `/report/${esc(jobId)}`;
+  const s = _state.scanHistory.find(x=>x.job_id===jobId);
+  if (s) {
+    document.querySelector("#report-select + a").href = `/report/${esc(jobId)}/markdown`;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   STATUS BAR
+════════════════════════════════════════════════════════════ */
+const _toolDots = {
+  semgrep:"stb-semgrep", gitleaks:"stb-gitleaks", trivy:"stb-trivy",
+  pip:"stb-pip", npm:"stb-npm", llm:"stb-llm", val:"stb-val",
+};
+
+function updateStatusBarFromTools(tools) {
+  const installed = new Set(tools.filter(t=>t.installed).map(t=>t.name));
+  const map = { semgrep:"semgrep", gitleaks:"gitleaks", trivy:"trivy", "pip-audit":"pip", npm:"npm" };
+  for (const [tname, dotKey] of Object.entries(map)) {
+    const el = document.getElementById("stb-" + dotKey);
+    if (el) el.className = "stb-dot " + (installed.has(tname) ? "online" : "offline");
+  }
+  document.getElementById("stb-llm").className = "stb-dot online";
+  document.getElementById("stb-val").className  = "stb-dot online";
+}
+
+function updateStatusBarRunning(tool) {
+  const el = document.getElementById("stb-" + tool);
+  if (el) el.className = "stb-dot running";
+}
+
+function updateStatusBarDone() {
+  for (const el of Object.values(_toolDots).map(id=>document.getElementById(id))) {
+    if (el && el.className.includes("running")) el.className = "stb-dot online";
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SEARCH
+════════════════════════════════════════════════════════════ */
+function handleSearch(q) {
+  q = q.toLowerCase().trim();
+  if (!q) { renderRecentScans(); return; }
+  const filtered = _state.scanHistory.filter(s =>
+    (s.repo_url||"").toLowerCase().includes(q) ||
+    (s.job_id||"").toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById("recent-scans-body");
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--tx3);font-size:.78rem;">No matching scans</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.slice(0,8).map(s=>scanRowHtml(s,false)).join("");
+}
+
+/* ════════════════════════════════════════════════════════════
+   SETTINGS PERSISTENCE (localStorage)
+════════════════════════════════════════════════════════════ */
+function saveSetting(key, val) {
+  try { localStorage.setItem("vra_" + key, JSON.stringify(val)); } catch(e){}
+}
+function loadSetting(key) {
+  try { const v = localStorage.getItem("vra_" + key); return v !== null ? JSON.parse(v) : null; } catch(e){ return null; }
+}
+function loadSettings() {
+  const skipLlm = loadSetting("skip_llm");
+  if (skipLlm !== null) {
+    document.getElementById("setting-skip-llm").checked = skipLlm;
+    document.getElementById("dr-skip").checked = skipLlm;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════════ */
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+
+function fmtDur(s) {
+  if (!s) return "—";
+  if (s < 60)  return `${s}s`;
+  if (s < 3600) return `${Math.floor(s/60)}m ${s%60}s`;
+  return `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`;
+}
+
+function timeAgo(ts) {
+  const diff = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (diff < 60)   return `${Math.round(diff)}s ago`;
+  if (diff < 3600) return `${Math.round(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff/3600)}h ago`;
+  return `${Math.round(diff/86400)}d ago`;
+}
+
+function esc(s) {
+  return String(s??"")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+════════════════════════════════════════════════════════════ */
+document.addEventListener("keydown", e => {
+  if ((e.metaKey||e.ctrlKey) && e.key==="k") { e.preventDefault(); openDrawer(); }
+  if (e.key==="Escape") closeDrawer();
+});
+document.getElementById("dr-url").addEventListener("keydown", e => {
+  if (e.key==="Enter") submitScan();
+});
+
+/* ════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════ */
+async function init() {
+  loadSettings();
+  await refreshHistory();
+
+  // If there's a recent in-progress scan (from a refresh), try to reconnect
+  const running = _state.scanHistory.find(s => s.status === "running" || s.status === "queued");
+  if (running) {
+    _state.activeScanId  = running.job_id;
+    _state.activeScanUrl = running.repo_url;
+    _state.lastEvents    = 0;
+    _state.feedCount     = 0;
+    _state.scanStart     = new Date(running.created_at).getTime();
+
+    buildPipelineHTML();
+    const repoShort = (running.repo_url||"").replace("https://github.com/","");
+    document.getElementById("msp-repo").textContent = repoShort;
+    document.getElementById("sb-ls-repo").textContent = repoShort;
+    document.getElementById("sb-live").classList.add("visible");
+    document.getElementById("tb-pill").classList.add("visible");
+    document.getElementById("tb-pill-text").textContent = repoShort.split("/").pop();
+    showScanState("running");
+
+    _tickTimer = setInterval(tickElapsed, 1000);
+    _pollTimer = setInterval(() => pollScan(running.job_id), 1000);
+    pollScan(running.job_id);
+  } else {
+    // Show the most recent completed scan
+    const latest = _state.scanHistory.find(s => s.status === "completed" || s.status === "failed");
+    if (latest) {
+      selectScan(latest.job_id);
+    }
+    // else stays in idle state
+  }
+}
+
+init();
+</script>
+</body>
+</html>

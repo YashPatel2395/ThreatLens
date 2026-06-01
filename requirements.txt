@@ -1,0 +1,14 @@
+# Core pipeline dependencies
+anthropic>=0.25.0
+openai>=1.0.0
+python-dotenv>=1.0.0
+
+# Web interface
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+markdown>=3.6
+
+# Testing
+pytest>=8.0.0
+httpx>=0.27.0          # required by FastAPI TestClient
